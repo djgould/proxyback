@@ -192,6 +192,7 @@ void AudioDevice::setupIOProc(AudioDeviceIOProc inProc, void *clientData) {
 
 void AudioDevice::destroyIOProc() {
     if (procId != nullptr) {
+        DebugMsg("ProxyAudio: Destroying proc id");
         AudioDeviceDestroyIOProcID(id, procId);
         procId = nullptr;
     }
@@ -206,6 +207,8 @@ void AudioDevice::start() {
         syslog(LOG_WARNING, "ProxyAudio: error: tried to start device %u with no IO proc setup", id);
         return;
     }
+
+    DebugMsg("ProxyAudio: Starting audio device");
 
     OSStatus err = AudioDeviceStart(id, procId);
 
@@ -225,6 +228,8 @@ void AudioDevice::stop() {
         syslog(LOG_WARNING, "ProxyAudio: error: tried to start device %u with no IO proc setup", id);
         return;
     }
+    
+    DebugMsg("ProxyAudio: Stopping audio device");
 
     OSStatus err = AudioDeviceStop(id, procId);
     isStarted = false;

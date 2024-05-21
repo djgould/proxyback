@@ -41,9 +41,9 @@ enum
 #define kDevice_IsHidden false
 #define kDevice_HasInput false
 #define kDevice_HasOutput true
-#define kDevice2_IsHidden false
-#define kDevice2_HasInput false
-#define kDevice2_HasOutput true
+#define kDevice2_IsHidden true
+#define kDevice2_HasInput true
+#define kDevice2_HasOutput false
 
 class ProxyAudioDevice {
   public:
@@ -541,7 +541,7 @@ class ProxyAudioDevice {
     const UInt32 gDevice_ChannelsPerFrame = 2;
     const UInt32 gDevice_SafetyOffset = 0;
     bool gPitch_Adjust_Enabled = false;
-    const Float32 kVolume_MinDB = -64.0;
+    const Float32 kVolume_MinDB = -25.0;
     const Float32 kVolume_MaxDB = 0.0;
     Float32 gVolume_Master_Value = 1.0;
 };

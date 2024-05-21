@@ -120,6 +120,33 @@ static const UInt32                 kDevice2_ObjectListSize              = sizeo
 
 
 #pragma mark Factory
+Float32 ProxyAudioDevice::volume_to_decibel(Float32 volume)
+{
+    if (volume <= powf(10.0f, kVolume_MinDB / 20.0f))
+        return kVolume_MinDB;
+    else
+        return 20.0f * log10f(volume);
+}
+
+Float32 ProxyAudioDevice::volume_from_decibel(Float32 decibel)
+{
+    if (decibel <= kVolume_MinDB)
+        return 0.0f;
+    else
+        return powf(10.0f, decibel / 20.0f);
+}
+
+Float32 ProxyAudioDevice::volume_to_scalar(Float32 volume)
+{
+    Float32 decibel = volume_to_decibel(volume);
+    return (decibel - kVolume_MinDB) / (kVolume_MaxDB - kVolume_MinDB);
+}
+
+Float32 ProxyAudioDevice::volume_from_scalar(Float32 scalar)
+{
+    Float32 decibel = scalar * (kVolume_MaxDB - kVolume_MinDB) + kVolume_MinDB;
+    return volume_from_decibel(decibel);
+}
 
 
 static UInt32 device_object_list_size(AudioObjectPropertyScope scope, AudioObjectID objectID) {
@@ -985,6 +1012,7 @@ Boolean ProxyAudioDevice::HasProperty(AudioServerPlugInDriverRef inDriver,
             break;
 
         case kObjectID_Stream_Output:
+        case kObjectID_Stream_Input:
             theAnswer = HasStreamProperty(inDriver, inObjectID, inClientProcessID, inAddress);
             break;
 
@@ -1039,6 +1067,7 @@ OSStatus ProxyAudioDevice::IsPropertySettable(AudioServerPlugInDriverRef inDrive
             break;
 
         case kObjectID_Stream_Output:
+        case kObjectID_Stream_Input:
             theAnswer = IsStreamPropertySettable(inDriver, inObjectID, inClientProcessID, inAddress, outIsSettable);
             break;
 
@@ -1100,6 +1129,7 @@ OSStatus ProxyAudioDevice::GetPropertyDataSize(AudioServerPlugInDriverRef inDriv
                 inDriver, inObjectID, inClientProcessID, inAddress, inQualifierDataSize, inQualifierData, outDataSize);
             break;
 
+        case kObjectID_Stream_Input:
         case kObjectID_Stream_Output:
             theAnswer = GetStreamPropertyDataSize(
                 inDriver, inObjectID, inClientProcessID, inAddress, inQualifierDataSize, inQualifierData, outDataSize);
@@ -1191,6 +1221,7 @@ OSStatus ProxyAudioDevice::GetPropertyData(AudioServerPlugInDriverRef inDriver,
                                               outData);
             break;
 
+        case kObjectID_Stream_Input:
         case kObjectID_Stream_Output:
             theAnswer = GetStreamPropertyData(inDriver,
                                               inObjectID,
@@ -1290,6 +1321,7 @@ OSStatus ProxyAudioDevice::SetPropertyData(AudioServerPlugInDriverRef inDriver,
                                               theChangedAddresses);
             break;
 
+        case kObjectID_Stream_Input:
         case kObjectID_Stream_Output:
             theAnswer = SetStreamPropertyData(inDriver,
                                               inObjectID,
@@ -1535,7 +1567,8 @@ OSStatus ProxyAudioDevice::GetPlugInPropertyData(AudioServerPlugInDriverRef inDr
     //    declare the local variables
     OSStatus theAnswer = 0;
     UInt32 theNumberItemsToFetch;
-
+    
+    DebugMsg("ProxyAudio: getting plug in data %u", inAddress->mSelector);
     //    check the arguments
     FailWithAction(inDriver != gAudioServerPlugInDriverRef,
                    theAnswer = kAudioHardwareBadObjectError,
@@ -1569,6 +1602,8 @@ OSStatus ProxyAudioDevice::GetPlugInPropertyData(AudioServerPlugInDriverRef inDr
                            Done,
                            "GetPlugInPropertyData: not enough space for the return value of "
                            "kAudioObjectPropertyBaseClass for the plug-in");
+            DebugMsg("ProxyAudio: getting plug in data kAudioObjectPropertyBaseClass");
+
             *((AudioClassID *)outData) = kAudioObjectClassID;
             *outDataSize = sizeof(AudioClassID);
             break;
@@ -1580,6 +1615,8 @@ OSStatus ProxyAudioDevice::GetPlugInPropertyData(AudioServerPlugInDriverRef inDr
                            Done,
                            "GetPlugInPropertyData: not enough space for the return value of kAudioObjectPropertyClass "
                            "for the plug-in");
+            DebugMsg("ProxyAudio: getting plug in data kAudioObjectPropertyClass");
+
             *((AudioClassID *)outData) = kAudioPlugInClassID;
             *outDataSize = sizeof(AudioClassID);
             break;
@@ -1591,6 +1628,8 @@ OSStatus ProxyAudioDevice::GetPlugInPropertyData(AudioServerPlugInDriverRef inDr
                            Done,
                            "GetPlugInPropertyData: not enough space for the return value of kAudioObjectPropertyOwner "
                            "for the plug-in");
+            DebugMsg("ProxyAudio: getting plug in data kAudioObjectPropertyOwner");
+
             *((AudioObjectID *)outData) = kAudioObjectUnknown;
             *outDataSize = sizeof(AudioObjectID);
             break;
@@ -1602,11 +1641,15 @@ OSStatus ProxyAudioDevice::GetPlugInPropertyData(AudioServerPlugInDriverRef inDr
                            Done,
                            "GetPlugInPropertyData: not enough space for the return value of "
                            "kAudioObjectPropertyManufacturer for the plug-in");
+            DebugMsg("ProxyAudio: getting plug in data kAudioObjectPropertyManufacturer");
+
             *((CFStringRef *)outData) = CFSTR("Apple Inc.");
             *outDataSize = sizeof(CFStringRef);
             break;
 
         case kAudioObjectPropertyOwnedObjects:
+            DebugMsg("ProxyAudio: getting plug in data kAudioObjectPropertyOwnedObjects");
+
             //    Calculate the number of items that have been requested. Note that this
             //    number is allowed to be smaller than the actual size of the list. In such
             //    case, only that number of items will be returned
@@ -1630,6 +1673,8 @@ OSStatus ProxyAudioDevice::GetPlugInPropertyData(AudioServerPlugInDriverRef inDr
             break;
 
         case kAudioPlugInPropertyBoxList:
+            DebugMsg("ProxyAudio: getting plug in data kAudioPlugInPropertyBoxList");
+
             //    Calculate the number of items that have been requested. Note that this
             //    number is allowed to be smaller than the actual size of the list. In such
             //    case, only that number of items will be returned
@@ -1650,6 +1695,8 @@ OSStatus ProxyAudioDevice::GetPlugInPropertyData(AudioServerPlugInDriverRef inDr
             break;
 
         case kAudioPlugInPropertyTranslateUIDToBox:
+            DebugMsg("ProxyAudio: getting plug in data kAudioPlugInPropertyTranslateUIDToBox");
+
             //    This property takes the CFString passed in the qualifier and converts that
             //    to the object ID of the box it corresponds to. For this driver, there is
             //    just the one box. Note that it is not an error if the string in the
@@ -1679,6 +1726,8 @@ OSStatus ProxyAudioDevice::GetPlugInPropertyData(AudioServerPlugInDriverRef inDr
             break;
 
         case kAudioPlugInPropertyDeviceList:
+            DebugMsg("ProxyAudio: getting plug in data kAudioPlugInPropertyDeviceList");
+
             //    Calculate the number of items that have been requested. Note that this
             //    number is allowed to be smaller than the actual size of the list. In such
             //    case, only that number of items will be returned
@@ -1690,6 +1739,8 @@ OSStatus ProxyAudioDevice::GetPlugInPropertyData(AudioServerPlugInDriverRef inDr
             {
                 theNumberItemsToFetch = (gBox_Acquired ? 2 : 0);
             }
+            
+            DebugMsg("kAudioPlugInPropertyDeviceList %d", theNumberItemsToFetch);
             
             //    Write the devices' object IDs into the return value
             if(theNumberItemsToFetch > 1)
@@ -1727,14 +1778,20 @@ OSStatus ProxyAudioDevice::GetPlugInPropertyData(AudioServerPlugInDriverRef inDr
                            theAnswer = kAudioHardwareBadPropertySizeError,
                            Done,
                            "GetPlugInPropertyData: no qualifier for kAudioPlugInPropertyTranslateUIDToDevice");
+            DebugMsg("ProxyAudio: getting plug in data kAudioPlugInPropertyTranslateUIDToDevice");
+
             CFStringRef deviceUID = get_device_uid();
             CFStringRef device2UID = get_device2_uid();
+            CFStringRef formattedString = CFStringCreateWithFormat(kCFAllocatorDefault, NULL, CFSTR("Qualifier Data: %@"), inQualifierData);
+            DebugMsg("ProxyAudio: kAudioPlugInPropertyTranslateUIDToDevice %s", CFStringGetCStringPtr(formattedString, kCFStringEncodingUTF8));
             if(CFStringCompare(*((CFStringRef*)inQualifierData), deviceUID, 0) == kCFCompareEqualTo)
             {
+                DebugMsg("returning device 1 uid");
                 *((AudioObjectID*)outData) = kObjectID_Device;
             }
             else if(CFStringCompare(*((CFStringRef*)inQualifierData), device2UID, 0) == kCFCompareEqualTo)
             {
+                DebugMsg("returning device 2 uid");
                 *((AudioObjectID*)outData) = kObjectID_Device2;
             }
             else
@@ -1755,6 +1812,8 @@ OSStatus ProxyAudioDevice::GetPlugInPropertyData(AudioServerPlugInDriverRef inDr
                 theAnswer = kAudioHardwareBadPropertySizeError,
                 Done,
                 "GetPlugInPropertyData: not enough space for the return value of kAudioPlugInPropertyResourceBundle");
+            DebugMsg("ProxyAudio: getting plug in data kAudioPlugInPropertyResourceBundle");
+
             *((CFStringRef *)outData) = CFSTR("");
             *outDataSize = sizeof(CFStringRef);
             break;
@@ -2308,6 +2367,7 @@ OSStatus ProxyAudioDevice::GetBoxPropertyData(AudioServerPlugInDriverRef inDrive
             //    This is used to indicate which devices came from this box
             {
                 CAMutex::Locker locker(stateMutex);
+                DebugMsg("ProxyAudio: kAudioBoxPropertyDeviceList");
                 if(gBox_Acquired)
                 {
                     if(inDataSize < sizeof(AudioObjectID))
@@ -3265,6 +3325,7 @@ OSStatus ProxyAudioDevice::GetDevicePropertyData(AudioServerPlugInDriverRef inDr
                            Done,
                            "GetDevicePropertyData: not enough space for the return value of "
                            "kAudioDevicePropertyIsHidden for the device");
+            DebugMsg("kAudioDevicePropertyIsHidden %u", inObjectID);
             switch (inObjectID) {
                 case kObjectID_Device:
                     *((UInt32*)outData) = kDevice_IsHidden;
@@ -3458,7 +3519,7 @@ Boolean ProxyAudioDevice::HasStreamProperty(AudioServerPlugInDriverRef inDriver,
     //    check the arguments
     FailIf(inDriver != gAudioServerPlugInDriverRef, Done, "HasStreamProperty: bad driver reference");
     FailIf(inAddress == NULL, Done, "HasStreamProperty: no address");
-    FailIf((inObjectID != kObjectID_Stream_Output), Done, "HasStreamProperty: not a stream object");
+    FailIf((inObjectID != kObjectID_Stream_Output) && (inObjectID != kObjectID_Stream_Input), Done, "HasStreamProperty: not a stream object");
     FailIf((inObjectID != kObjectID_Stream_Input) && (inObjectID != kObjectID_Stream_Output), Done, "BlackHole_HasStreamProperty: not a stream object");
 
     //    Note that for each object, this driver implements all the required properties plus a few
@@ -3576,7 +3637,7 @@ OSStatus ProxyAudioDevice::GetStreamPropertyDataSize(AudioServerPlugInDriverRef 
                    theAnswer = kAudioHardwareIllegalOperationError,
                    Done,
                    "GetStreamPropertyDataSize: no place to put the return value");
-    FailWithAction((inObjectID != kObjectID_Stream_Output),
+    FailWithAction((inObjectID != kObjectID_Stream_Output) && (inObjectID != kObjectID_Stream_Input),
                    theAnswer = kAudioHardwareBadObjectError,
                    Done,
                    "GetStreamPropertyDataSize: not a stream object");
@@ -3886,7 +3947,7 @@ OSStatus ProxyAudioDevice::SetStreamPropertyData(AudioServerPlugInDriverRef inDr
                    theAnswer = kAudioHardwareIllegalOperationError,
                    Done,
                    "SetStreamPropertyData: no place to return the properties that changed");
-    FailWithAction((inObjectID != kObjectID_Stream_Output),
+    FailWithAction((inObjectID != kObjectID_Stream_Output) && (inObjectID != kObjectID_Stream_Input),
                    theAnswer = kAudioHardwareBadObjectError,
                    Done,
                    "SetStreamPropertyData: not a stream object");
@@ -4384,7 +4445,7 @@ OSStatus ProxyAudioDevice::GetControlPropertyData(AudioServerPlugInDriverRef inD
                                    Done,
                                    "GetControlPropertyData: not enough space for the return value of "
                                    "kAudioControlPropertyElement for the volume control");
-                    *((AudioObjectPropertyElement *)outData) = (inObjectID == kObjectID_Volume_Output_Master) ? 1 : 2;
+                    *((AudioObjectPropertyElement *)outData) = kAudioObjectPropertyElementMain;
                     *outDataSize = sizeof(AudioObjectPropertyElement);
                     break;
 
@@ -4398,11 +4459,7 @@ OSStatus ProxyAudioDevice::GetControlPropertyData(AudioServerPlugInDriverRef inD
                                    "kAudioLevelControlPropertyScalarValue for the volume control");
                     {
                         CAMutex::Locker locker(stateMutex);
-                        if (inObjectID == kObjectID_Volume_Output_Master) {
-                            *((Float32 *)outData) = gVolume_Output_L_Value;
-                        } else {
-                            *((Float32 *)outData) = gVolume_Output_R_Value;
-                        }
+                        *((Float32*)outData) = volume_to_scalar(gVolume_Master_Value);
                     }
                     *outDataSize = sizeof(Float32);
                     break;
@@ -4417,20 +4474,12 @@ OSStatus ProxyAudioDevice::GetControlPropertyData(AudioServerPlugInDriverRef inD
                                    "kAudioLevelControlPropertyDecibelValue for the volume control");
                     {
                         CAMutex::Locker locker(stateMutex);
-                        if (inObjectID == kObjectID_Volume_Output_Master) {
-                            *((Float32 *)outData) = gVolume_Output_L_Value;
-                        } else {
-                            *((Float32 *)outData) = gVolume_Output_R_Value;
-                        }
+                        *((Float32*)outData) = gVolume_Master_Value;
+                        *((Float32*)outData) = volume_to_decibel(*((Float32*)outData));
                     }
 
-                    //    Note that we square the scalar value before converting to dB so as to
-                    //    provide a better curve for the slider
-                    *((Float32 *)outData) *= *((Float32 *)outData);
-                    *((Float32 *)outData) = kVolume_MinDB + (*((Float32 *)outData) * (kVolume_MaxDB - kVolume_MinDB));
-
-                    //    report how much we wrote
                     *outDataSize = sizeof(Float32);
+
                     break;
 
                 case kAudioLevelControlPropertyDecibelRange:
@@ -4646,7 +4695,7 @@ OSStatus ProxyAudioDevice::SetControlPropertyData(AudioServerPlugInDriverRef inD
                         theAnswer = kAudioHardwareBadPropertySizeError,
                         Done,
                         "SetControlPropertyData: wrong size for the data for kAudioLevelControlPropertyScalarValue");
-                    theNewVolume = *((const Float32 *)inData);
+                    theNewVolume = volume_from_scalar(*((const Float32*)inData));
                     if (theNewVolume < 0.0) {
                         theNewVolume = 0.0;
                     } else if (theNewVolume > 1.0) {
@@ -4654,28 +4703,16 @@ OSStatus ProxyAudioDevice::SetControlPropertyData(AudioServerPlugInDriverRef inD
                     }
                     {
                         CAMutex::Locker locker(stateMutex);
-                        if (inObjectID == kObjectID_Volume_Output_Master) {
-                            if (gVolume_Output_L_Value != theNewVolume) {
-                                gVolume_Output_L_Value = theNewVolume;
-                                *outNumberPropertiesChanged = 2;
-                                outChangedAddresses[0].mSelector = kAudioLevelControlPropertyScalarValue;
-                                outChangedAddresses[0].mScope = kAudioObjectPropertyScopeGlobal;
-                                outChangedAddresses[0].mElement = 1;
-                                outChangedAddresses[1].mSelector = kAudioLevelControlPropertyDecibelValue;
-                                outChangedAddresses[1].mScope = kAudioObjectPropertyScopeGlobal;
-                                outChangedAddresses[1].mElement = 1;
-                            }
-                        } else {
-                            if (gVolume_Output_R_Value != theNewVolume) {
-                                gVolume_Output_R_Value = theNewVolume;
-                                *outNumberPropertiesChanged = 2;
-                                outChangedAddresses[0].mSelector = kAudioLevelControlPropertyScalarValue;
-                                outChangedAddresses[0].mScope = kAudioObjectPropertyScopeGlobal;
-                                outChangedAddresses[0].mElement = 2;
-                                outChangedAddresses[1].mSelector = kAudioLevelControlPropertyDecibelValue;
-                                outChangedAddresses[1].mScope = kAudioObjectPropertyScopeGlobal;
-                                outChangedAddresses[1].mElement = 2;
-                            }
+                        if(gVolume_Master_Value != theNewVolume)
+                        {
+                            gVolume_Master_Value = theNewVolume;
+                            *outNumberPropertiesChanged = 2;
+                            outChangedAddresses[0].mSelector = kAudioLevelControlPropertyScalarValue;
+                            outChangedAddresses[0].mScope = kAudioObjectPropertyScopeGlobal;
+                            outChangedAddresses[0].mElement = kAudioObjectPropertyElementMain;
+                            outChangedAddresses[1].mSelector = kAudioLevelControlPropertyDecibelValue;
+                            outChangedAddresses[1].mScope = kAudioObjectPropertyScopeGlobal;
+                            outChangedAddresses[1].mElement = kAudioObjectPropertyElementMain;
                         }
                     }
                     break;
@@ -4695,35 +4732,19 @@ OSStatus ProxyAudioDevice::SetControlPropertyData(AudioServerPlugInDriverRef inD
                     } else if (theNewVolume > kVolume_MaxDB) {
                         theNewVolume = kVolume_MaxDB;
                     }
-                    //    Note that we square the scalar value before converting to dB so as to
-                    //    provide a better curve for the slider. We undo that here.
-                    theNewVolume = theNewVolume - kVolume_MinDB;
-                    theNewVolume /= kVolume_MaxDB - kVolume_MinDB;
-                    theNewVolume = sqrtf(theNewVolume);
+                    theNewVolume = volume_from_decibel(theNewVolume);
                     {
                         CAMutex::Locker locker(stateMutex);
-                        if (inObjectID == kObjectID_Volume_Output_Master) {
-                            if (gVolume_Output_L_Value != theNewVolume) {
-                                gVolume_Output_L_Value = theNewVolume;
-                                *outNumberPropertiesChanged = 2;
-                                outChangedAddresses[0].mSelector = kAudioLevelControlPropertyScalarValue;
-                                outChangedAddresses[0].mScope = kAudioObjectPropertyScopeGlobal;
-                                outChangedAddresses[0].mElement = 1;
-                                outChangedAddresses[1].mSelector = kAudioLevelControlPropertyDecibelValue;
-                                outChangedAddresses[1].mScope = kAudioObjectPropertyScopeGlobal;
-                                outChangedAddresses[1].mElement = 1;
-                            }
-                        } else {
-                            if (gVolume_Output_R_Value != theNewVolume) {
-                                gVolume_Output_R_Value = theNewVolume;
-                                *outNumberPropertiesChanged = 2;
-                                outChangedAddresses[0].mSelector = kAudioLevelControlPropertyScalarValue;
-                                outChangedAddresses[0].mScope = kAudioObjectPropertyScopeGlobal;
-                                outChangedAddresses[0].mElement = 2;
-                                outChangedAddresses[1].mSelector = kAudioLevelControlPropertyDecibelValue;
-                                outChangedAddresses[1].mScope = kAudioObjectPropertyScopeGlobal;
-                                outChangedAddresses[1].mElement = 2;
-                            }
+                        if(gVolume_Master_Value != theNewVolume)
+                        {
+                            gVolume_Master_Value = theNewVolume;
+                            *outNumberPropertiesChanged = 2;
+                            outChangedAddresses[0].mSelector = kAudioLevelControlPropertyScalarValue;
+                            outChangedAddresses[0].mScope = kAudioObjectPropertyScopeGlobal;
+                            outChangedAddresses[0].mElement = kAudioObjectPropertyElementMain;
+                            outChangedAddresses[1].mSelector = kAudioLevelControlPropertyDecibelValue;
+                            outChangedAddresses[1].mScope = kAudioObjectPropertyScopeGlobal;
+                            outChangedAddresses[1].mElement = kAudioObjectPropertyElementMain;
                         }
                     }
                     break;
@@ -4815,6 +4836,7 @@ int ProxyAudioDevice::outputDeviceAliveListenerStatic(AudioObjectID inObjectID,
                                                       UInt32 inNumberAddresses,
                                                       const AudioObjectPropertyAddress *inAddresses,
                                                       void *inClientData) {
+    DebugMsg("ProxyAudio: Checking if output device is alive");
     if (!inClientData) {
         return noErr;
     }
@@ -4897,14 +4919,15 @@ void ProxyAudioDevice::updateOutputDeviceStartedState() {
     static bool userIsActivePrevious = false;
     
     if (!outputDevice.isValid()) {
+        DebugMsg("ProxyAudio: Output Device is not valid");
         return;
     }
 
     bool shouldStart = false;
 
     if (!outputDeviceReady) {
+        DebugMsg("ProxyAudio: Output Device is not ready");
         shouldStart = false;
-
     } else if (outputDeviceActiveCondition == ActiveCondition::userActive) {
         // We consider the user to be active if they have done anything in the last 24 hours:
         bool userIsActive = (getUserIdleTimeInterval() < 86400 );
@@ -5136,27 +5159,23 @@ OSStatus ProxyAudioDevice::StartIO(AudioServerPlugInDriverRef inDriver,
     resetInputData();
 
     CAMutex::Locker locker(stateMutex);
-
+    if (inDeviceObjectID == kObjectID_Device) { gDevice_IOIsRunning += 1; }
+    if (inDeviceObjectID == kObjectID_Device2) { gDevice2_IOIsRunning += 1; }
+    
     //    figure out what we need to do
     if (gDevice_IOIsRunning == UINT64_MAX) {
         //    overflowing is an error
         theAnswer = kAudioHardwareIllegalOperationError;
-    } else if (gDevice_IOIsRunning == 0) {
-        //    We need to start the hardware, which in this case is just anchoring the time line.
-        if (inDeviceObjectID == kObjectID_Device) { gDevice_IOIsRunning += 1; }
-        if (inDeviceObjectID == kObjectID_Device2) { gDevice2_IOIsRunning += 1; }
+    } else if ((gDevice_IOIsRunning || gDevice2_IOIsRunning)) {
         gDevice_NumberTimeStamps = 0;
         gDevice_AnchorSampleTime = 0;
         gDevice_AnchorHostTime = mach_absolute_time();
         gDevice_ElapsedTicks = 0;
         outputAccumulatedRateRatio = 0.0;
         outputAccumulatedRateRatioSamples = 0;
-    } else {
-        if (inDeviceObjectID == kObjectID_Device) { gDevice_IOIsRunning += 1; }
-        if (inDeviceObjectID == kObjectID_Device2) { gDevice2_IOIsRunning += 1; }
     }
     
-    inputIOIsActive = (gDevice_IOIsRunning > 0);
+    inputIOIsActive = (gDevice_IOIsRunning > 0 || gDevice2_IOIsRunning > 0);
     ExecuteInAudioOutputThread(^ () { updateOutputDeviceStartedState(); });
     
     DebugMsg("ProxyAudio: StartIO finished");
@@ -5171,8 +5190,10 @@ OSStatus ProxyAudioDevice::StopIO(AudioServerPlugInDriverRef inDriver,
     //    once all clients have stopped.
 
 #pragma unused(inClientID)
-    DebugMsg("ProxyAudio: StopIO");
-    inputFinalFrameTime = lastInputFrameTime + lastInputBufferFrameSize;
+    DebugMsg("ProxyAudio: StopIO %u", inDeviceObjectID);
+    if (inDeviceObjectID == kObjectID_Device) {
+        inputFinalFrameTime = lastInputFrameTime + lastInputBufferFrameSize;
+    }
 
     //    declare the local variables
     OSStatus theAnswer = 0;
@@ -5190,20 +5211,27 @@ OSStatus ProxyAudioDevice::StopIO(AudioServerPlugInDriverRef inDriver,
         CAMutex::Locker locker(stateMutex);
         
         
-        if (inDeviceObjectID == kObjectID_Device) { gDevice_IOIsRunning -= 1; }
-        if (inDeviceObjectID == kObjectID_Device2) { gDevice2_IOIsRunning -= 1; }
+        if (inDeviceObjectID == kObjectID_Device) {
+            DebugMsg("ProxyAudio: decrementing gDevice_IOIsRunning for %u", kObjectID_Device);
+            gDevice_IOIsRunning -= 1;
+        }
+        if (inDeviceObjectID == kObjectID_Device2) {
+            DebugMsg("ProxyAudio: decrementing gDevice2_IOIsRunning for %u", inDeviceObjectID);
+            gDevice2_IOIsRunning -= 1;
+        }
 
         //    figure out what we need to do
-        if (gDevice_IOIsRunning == 0) {
+        if (gDevice_IOIsRunning == 0 && gDevice2_IOIsRunning == 0) {
             //    underflowing is an error
+            DebugMsg("ProxyAudio: gDevice_IOIsRunning == 0 && gDevice2_IOIsRunning == 0");
             theAnswer = kAudioHardwareIllegalOperationError;
         }
     }
     
-    inputIOIsActive = (gDevice_IOIsRunning > 0);
+    inputIOIsActive = (gDevice_IOIsRunning > 0 || gDevice2_IOIsRunning > 0);
     ExecuteInAudioOutputThread(^ () { updateOutputDeviceStartedState(); });
     
-    DebugMsg("ProxyAudio: StopIO finished");
+    DebugMsg("ProxyAudio: StopIO finished %u", theAnswer);
 
 Done:
     return theAnswer;
@@ -5457,13 +5485,12 @@ OSStatus ProxyAudioDevice::outputDeviceIOProc(AudioDeviceID inDevice,
     UInt32 currentInputDeviceChannelCount;
     Float32 currentVolumeR, currentVolumeL;
     bool currentMute;
-
     {
         CAMutex::Locker stateLocker(&stateMutex);
         currentInputDeviceSampleRate = gDevice_SampleRate;
         currentInputDeviceChannelCount = gDevice_ChannelsPerFrame;
-        currentVolumeR = gVolume_Output_R_Value;
-        currentVolumeL = gVolume_Output_L_Value;
+        currentVolumeR = gVolume_Master_Value;
+        currentVolumeL = gVolume_Master_Value;
         currentMute = gMute_Output_Mute;
     }
     
@@ -5481,6 +5508,8 @@ OSStatus ProxyAudioDevice::outputDeviceIOProc(AudioDeviceID inDevice,
     inputCycleCount = 0;
 
     if (lastInputFrameTime < 0 || lastInputBufferFrameSize < 0) {
+        DebugMsg("lastInputFrameTime < 0 || lastInputBufferFrameSize < 0");
+
         return noErr;
     }
 
@@ -5500,6 +5529,8 @@ OSStatus ProxyAudioDevice::outputDeviceIOProc(AudioDeviceID inDevice,
     Float64 startFrame = inOutputTime->mSampleTime + inputOutputSampleDelta;
 
     if (inputFinalFrameTime != -1 && startFrame >= inputFinalFrameTime) {
+        DebugMsg("inputFinalFrameTime != -1 && startFrame >= inputFinalFrameTime %f", inputFinalFrameTime);
+
         return noErr;
     }
 
@@ -5539,7 +5570,7 @@ OSStatus ProxyAudioDevice::outputDeviceIOProc(AudioDeviceID inDevice,
     
     Float32 volumeFactorL = 1.0, volumeFactorR = 1.0;
     calculateVolumeFactors(currentVolumeL, currentVolumeR, currentMute, volumeFactorL, volumeFactorR);
-
+//    DebugMsg("Current Volume L %f, Current Volume R %f, Volume factor L %f, Volume factor R %f", currentVolumeL, currentVolumeR, volumeFactorL, volumeFactorR);
     for (UInt32 bufferIndex = 0; bufferIndex < outOutputData->mNumberBuffers; bufferIndex++) {
         UInt32 outputChannelCount = outOutputData->mBuffers[bufferIndex].mNumberChannels;
         UInt32 numChannelsToProcess = std::min(outputChannelCount, currentInputDeviceChannelCount);
