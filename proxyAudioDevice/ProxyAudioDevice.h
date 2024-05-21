@@ -11,24 +11,39 @@
 
 class AudioRingBuffer;
 
-enum {
-    kObjectID_PlugIn = kAudioObjectPlugInObject,
-    kObjectID_Box = 2,
-    kObjectID_Device = 3,
-    kObjectID_Stream_Output = 4,
-    kObjectID_Volume_Output_L = 5,
-    kObjectID_Volume_Output_R = 6,
-    kObjectID_Mute_Output_Master = 7,
-    kObjectID_DataSource_Output_Master = 8
+enum
+{
+    kObjectID_PlugIn                    = kAudioObjectPlugInObject,
+    kObjectID_Box                       = 2,
+    kObjectID_Device                    = 3,
+    kObjectID_Stream_Input              = 4,
+    kObjectID_Volume_Input_Master       = 5,
+    kObjectID_Mute_Input_Master         = 6,
+    kObjectID_Stream_Output             = 7,
+    kObjectID_Volume_Output_Master      = 8,
+    kObjectID_Mute_Output_Master        = 9,
+    kObjectID_Pitch_Adjust              = 10,
+    kObjectID_ClockSource               = 11,
+    kObjectID_Device2                   = 12,
 };
+
 
 #define kPlugIn_BundleID "net.briankendall.ProxyAudioDevice"
 #define kBox_UID "ProxyAudioBox_UID"
 #define kDevice_UID "ProxyAudioDevice_UID"
 #define kDevice_ModelUID "ProxyAudioDevice_ModelUID"
+#define kDevice_Name "Platy"
 #define kOutputDeviceDefaultBufferFrameSize 512
 #define kOutputDeviceMinBufferFrameSize 4
 #define kOutputDeviceDefaultActiveCondition ActiveCondition::userActive
+#define kDevice2_UID "Mirror_UID"
+#define kDevice2_Name "Mirror"
+#define kDevice_IsHidden false
+#define kDevice_HasInput false
+#define kDevice_HasOutput true
+#define kDevice2_IsHidden false
+#define kDevice2_HasInput false
+#define kDevice2_HasOutput true
 
 class ProxyAudioDevice {
   public:
@@ -467,6 +482,10 @@ class ProxyAudioDevice {
                                     const void *inData,
                                     UInt32 *outNumberPropertiesChanged,
                                     AudioObjectPropertyAddress outChangedAddresses[2]);
+    Float32 volume_to_decibel(Float32 volume);
+    Float32 volume_from_decibel(Float32 decibel);
+    Float32 volume_to_scalar(Float32 volume);
+    Float32 volume_from_scalar(Float32 scalar);
     void monitorUserActivity();
     dispatch_queue_t AudioOutputDispatchQueue();
     void ExecuteInAudioOutputThread(void (^block)());
@@ -504,21 +523,27 @@ class ProxyAudioDevice {
     Float64 gDevice_SampleRate = 44100.0;
     std::vector<Float64> gDevice_SampleRates = {22050, 44100, 48000, 88200, 96000, 176400, 192000};
     UInt64 gDevice_IOIsRunning = 0;
+    UInt64 gDevice2_IOIsRunning = 0;
     const UInt32 kDevice_RingBufferSize = 16384;
     Float64 gDevice_HostTicksPerFrame = 0.0;
+    Float32 gPitch_Adjust = 0.5;
+    Float64 gDevice_AdjustedTicksPerFrame = 0.0;
     UInt64 gDevice_NumberTimeStamps = 0;
     Float64 gDevice_AnchorSampleTime = 0.0;
     Float64 gDevice_ElapsedTicks = 0.0;
     UInt64 gDevice_AnchorHostTime = 0;
     bool gStream_Output_IsActive = true;
-    const Float32 kVolume_MinDB = -25.0;
-    const Float32 kVolume_MaxDB = 0.0;
+    bool gStream_Input_IsActive = true;
     Float32 gVolume_Output_L_Value = 0.0;
     Float32 gVolume_Output_R_Value = 0.0;
     bool gMute_Output_Mute = false;
     const UInt32 gDevice_BytesPerFrameInChannel = 4;
     const UInt32 gDevice_ChannelsPerFrame = 2;
     const UInt32 gDevice_SafetyOffset = 0;
+    bool gPitch_Adjust_Enabled = false;
+    const Float32 kVolume_MinDB = -64.0;
+    const Float32 kVolume_MaxDB = 0.0;
+    Float32 gVolume_Master_Value = 1.0;
 };
 
 extern "C" void *ProxyAudio_Create(CFAllocatorRef inAllocator, CFUUIDRef inRequestedTypeUUID);
