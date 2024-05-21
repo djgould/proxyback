@@ -1,22 +1,8 @@
-## Proxy Audio Driver
+## ProxyBack Audio Driver
 
-A HAL virtual audio driver for macOS that sends all output to another audio device. Its main purpose is to make it possible to use macOS's system volume controls, such as the volume menu bar icon or volume keyboard keys, to change the volume of external audio interfaces that don't allow it. It might be useful for something else, too.
+A HAL virtual audio driver for macOS that sends all output to another audio device, and provides a hidden audio device to listen to audio output. Enabling a configurable virtual interface, where a client can change the audio output device (i.e. your speakers or headphones), and giving the client the ability to listen to that Audio Data.
 
 ### Installation
-
-#### Install with a package manager
-
-[![Packaging status on repology](https://repology.org/badge/vertical-allrepos/proxy-audio-device.svg)](https://repology.org/project/proxy-audio-device/versions)
-
-Install [proxy-audio-device with Homebrew with `brew`](https://formulae.brew.sh/cask/proxy-audio-device):
-
-    brew install --cask proxy-audio-device
-
-_or_ [proxy-audio-device on macports with `port`](https://ports.macports.org/port/proxy-audio-device/):
-
-    sudo port install proxy-audio-device
-
-Run the _Proxy Audio Device Settings_ app to configure your new audio device.
 
 #### Manual installation
 
