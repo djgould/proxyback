@@ -69,11 +69,11 @@ return CFStringCreateWithCString(NULL, _string_fmt, kCFStringEncodingUTF8); \
 
 
 static CFStringRef get_box_uid(void)          { RETURN_FORMATTED_STRING(kBox_UID) }
-static CFStringRef get_device_uid(void)       { RETURN_FORMATTED_STRING(kDevice_UID) }
-static CFStringRef get_device_name(void)      { RETURN_FORMATTED_STRING(kDevice_Name) }
-static CFStringRef get_device2_uid(void)      { RETURN_FORMATTED_STRING(kDevice2_UID) }
-static CFStringRef get_device2_name(void)     { RETURN_FORMATTED_STRING(kDevice2_Name) }
-static CFStringRef get_device_model_uid(void) { RETURN_FORMATTED_STRING(kDevice_ModelUID) }
+static CFStringRef get_device_uid(void)       { RETURN_FORMATTED_STRING(kDevice_Output_UID) }
+static CFStringRef get_device_name(void)      { RETURN_FORMATTED_STRING(kDevice_Output_Name) }
+static CFStringRef get_device2_uid(void)      { RETURN_FORMATTED_STRING(kDevice_Output2_UID) }
+static CFStringRef get_device2_name(void)     { RETURN_FORMATTED_STRING(kDevice_Output2_Name) }
+static CFStringRef get_device_model_uid(void) { RETURN_FORMATTED_STRING(kDevice_Output_ModelUID) }
 
 enum ObjectType
 {
@@ -87,13 +87,13 @@ struct ObjectInfo {
     AudioObjectPropertyScope scope;
 };
 
-static struct ObjectInfo            kDevice_ObjectList[]                = {
-#if kDevice_HasInput
+static struct ObjectInfo            kDevice_Output_ObjectList[]                = {
+#if kDevice_Output_HasInput
     { kObjectID_Stream_Input,           kObjectType_Stream,     kAudioObjectPropertyScopeInput  },
     { kObjectID_Volume_Input_Master,    kObjectType_Control,    kAudioObjectPropertyScopeInput  },
     { kObjectID_Mute_Input_Master,      kObjectType_Control,    kAudioObjectPropertyScopeInput  },
 #endif
-#if kDevice_HasOutput
+#if kDevice_Output_HasOutput
     { kObjectID_Stream_Output,          kObjectType_Stream,     kAudioObjectPropertyScopeOutput },
     { kObjectID_Volume_Output_Master,   kObjectType_Control,    kAudioObjectPropertyScopeOutput },
     { kObjectID_Mute_Output_Master,     kObjectType_Control,    kAudioObjectPropertyScopeOutput },
@@ -103,19 +103,19 @@ static struct ObjectInfo            kDevice_ObjectList[]                = {
 };
 
 static struct ObjectInfo            kDevice2_ObjectList[]                = {
-#if kDevice2_HasInput
+#if kDevice_Output2_HasInput
     { kObjectID_Stream_Input,           kObjectType_Stream,     kAudioObjectPropertyScopeInput  },
     { kObjectID_Volume_Input_Master,    kObjectType_Control,    kAudioObjectPropertyScopeInput  },
     { kObjectID_Mute_Input_Master,      kObjectType_Control,    kAudioObjectPropertyScopeInput  },
 #endif
-#if kDevice2_HasOutput
+#if kDevice_Output2_HasOutput
     { kObjectID_Stream_Output,          kObjectType_Stream,     kAudioObjectPropertyScopeOutput },
     { kObjectID_Volume_Output_Master,   kObjectType_Control,    kAudioObjectPropertyScopeOutput },
     { kObjectID_Mute_Output_Master,     kObjectType_Control,    kAudioObjectPropertyScopeOutput },
 #endif
 };
 
-static const UInt32                 kDevice_ObjectListSize              = sizeof(kDevice_ObjectList) / sizeof(struct ObjectInfo);
+static const UInt32                 kDevice_Output_ObjectListSize              = sizeof(kDevice_Output_ObjectList) / sizeof(struct ObjectInfo);
 static const UInt32                 kDevice2_ObjectListSize              = sizeof(kDevice2_ObjectList) / sizeof(struct ObjectInfo);
 
 
@@ -156,13 +156,13 @@ static UInt32 device_object_list_size(AudioObjectPropertyScope scope, AudioObjec
             {
                 if (scope == kAudioObjectPropertyScopeGlobal)
                 {
-                    return kDevice_ObjectListSize;
+                    return kDevice_Output_ObjectListSize;
                 }
 
                 UInt32 count = 0;
-                for (UInt32 i = 0; i < kDevice_ObjectListSize; i++)
+                for (UInt32 i = 0; i < kDevice_Output_ObjectListSize; i++)
                 {
-                    count += (kDevice_ObjectList[i].scope == scope);
+                    count += (kDevice_Output_ObjectList[i].scope == scope);
                 }
 
                 return count;
@@ -198,9 +198,9 @@ static UInt32 device_stream_list_size(AudioObjectPropertyScope scope, AudioObjec
         case kObjectID_Device:
             {
                 UInt32 count = 0;
-                for (UInt32 i = 0; i < kDevice_ObjectListSize; i++)
+                for (UInt32 i = 0; i < kDevice_Output_ObjectListSize; i++)
                 {
-                    count += (kDevice_ObjectList[i].type == kObjectType_Stream && (kDevice_ObjectList[i].scope == scope || scope == kAudioObjectPropertyScopeGlobal));
+                    count += (kDevice_Output_ObjectList[i].type == kObjectType_Stream && (kDevice_Output_ObjectList[i].scope == scope || scope == kAudioObjectPropertyScopeGlobal));
                 }
 
                 return count;
@@ -234,9 +234,9 @@ static UInt32 device_control_list_size(AudioObjectPropertyScope scope, AudioObje
         {
             
             UInt32 count = 0;
-            for (UInt32 i = 0; i < kDevice_ObjectListSize; i++)
+            for (UInt32 i = 0; i < kDevice_Output_ObjectListSize; i++)
             {
-                count += (kDevice_ObjectList[i].type == kObjectType_Control && (kDevice_ObjectList[i].scope == scope || scope == kAudioObjectPropertyScopeGlobal));
+                count += (kDevice_Output_ObjectList[i].type == kObjectType_Control && (kDevice_Output_ObjectList[i].scope == scope || scope == kAudioObjectPropertyScopeGlobal));
             }
 
             return count;
@@ -2992,9 +2992,9 @@ OSStatus ProxyAudioDevice::GetDevicePropertyData(AudioServerPlugInDriverRef inDr
                 case kObjectID_Device:
                     for (UInt32 i = 0, k = 0; k < theNumberItemsToFetch; i++)
                     {
-                        if (kDevice_ObjectList[i].scope == inAddress->mScope || inAddress->mScope == kAudioObjectPropertyScopeGlobal)
+                        if (kDevice_Output_ObjectList[i].scope == inAddress->mScope || inAddress->mScope == kAudioObjectPropertyScopeGlobal)
                         {
-                            ((AudioObjectID*)outData)[k++] = kDevice_ObjectList[i].id;
+                            ((AudioObjectID*)outData)[k++] = kDevice_Output_ObjectList[i].id;
                         }
                     }
                     break;
@@ -3046,7 +3046,7 @@ OSStatus ProxyAudioDevice::GetDevicePropertyData(AudioServerPlugInDriverRef inDr
                            Done,
                            "GetDevicePropertyData: not enough space for the return value of "
                            "kAudioDevicePropertyModelUID for the device");
-            *((CFStringRef *)outData) = CFSTR(kDevice_ModelUID);
+            *((CFStringRef *)outData) = CFSTR(kDevice_Output_ModelUID);
             *outDataSize = sizeof(CFStringRef);
             break;
 
@@ -3209,10 +3209,10 @@ OSStatus ProxyAudioDevice::GetDevicePropertyData(AudioServerPlugInDriverRef inDr
                 case kObjectID_Device:
                     for (UInt32 i = 0, k = 0; k < theNumberItemsToFetch; i++)
                     {
-                        if ((kDevice_ObjectList[i].type == kObjectType_Stream) &&
-                            (kDevice_ObjectList[i].scope == inAddress->mScope || inAddress->mScope == kAudioObjectPropertyScopeGlobal))
+                        if ((kDevice_Output_ObjectList[i].type == kObjectType_Stream) &&
+                            (kDevice_Output_ObjectList[i].scope == inAddress->mScope || inAddress->mScope == kAudioObjectPropertyScopeGlobal))
                         {
-                            ((AudioObjectID*)outData)[k++] = kDevice_ObjectList[i].id;
+                            ((AudioObjectID*)outData)[k++] = kDevice_Output_ObjectList[i].id;
                         }
                     }
                     break;
@@ -3250,9 +3250,9 @@ OSStatus ProxyAudioDevice::GetDevicePropertyData(AudioServerPlugInDriverRef inDr
                     for (UInt32 i = 0, k = 0; k < theNumberItemsToFetch; i++)
                     {
                         // TODO remove hack! There must be a better way than looking for a fixed i
-                        if ((kDevice_ObjectList[i].type == kObjectType_Control) && !(!gPitch_Adjust_Enabled && kDevice_ObjectList[i].id==kObjectID_Pitch_Adjust))
+                        if ((kDevice_Output_ObjectList[i].type == kObjectType_Control) && !(!gPitch_Adjust_Enabled && kDevice_Output_ObjectList[i].id==kObjectID_Pitch_Adjust))
                         {
-                            ((AudioObjectID*)outData)[k++] = kDevice_ObjectList[i].id;
+                            ((AudioObjectID*)outData)[k++] = kDevice_Output_ObjectList[i].id;
                         }
                     }
                     break;
@@ -3260,7 +3260,7 @@ OSStatus ProxyAudioDevice::GetDevicePropertyData(AudioServerPlugInDriverRef inDr
                 case kObjectID_Device2:
                     for (UInt32 i = 0, k = 0; k < theNumberItemsToFetch; i++)
                     {
-                        if ((kDevice_ObjectList[i].type == kObjectType_Control) && !(!gPitch_Adjust_Enabled && kDevice_ObjectList[i].id==kObjectID_Pitch_Adjust))
+                        if ((kDevice_Output_ObjectList[i].type == kObjectType_Control) && !(!gPitch_Adjust_Enabled && kDevice_Output_ObjectList[i].id==kObjectID_Pitch_Adjust))
                         {
                             ((AudioObjectID*)outData)[k++] = kDevice2_ObjectList[i].id;
                         }
@@ -3328,10 +3328,10 @@ OSStatus ProxyAudioDevice::GetDevicePropertyData(AudioServerPlugInDriverRef inDr
             DebugMsg("kAudioDevicePropertyIsHidden %u", inObjectID);
             switch (inObjectID) {
                 case kObjectID_Device:
-                    *((UInt32*)outData) = kDevice_IsHidden;
+                    *((UInt32*)outData) = kDevice_Output_IsHidden;
                     break;
                 case kObjectID_Device2:
-                    *((UInt32*)outData) = kDevice2_IsHidden;
+                    *((UInt32*)outData) = kDevice_Output2_IsHidden;
                     break;
             }
             *outDataSize = sizeof(UInt32);
@@ -5155,7 +5155,7 @@ OSStatus ProxyAudioDevice::StartIO(AudioServerPlugInDriverRef inDriver,
 
 #pragma unused(inClientID)
     
-    DebugMsg("ProxyAudio: StartIO");
+    DebugMsg("ProxyAudio: StartIO %d", inClientID);
     resetInputData();
 
     CAMutex::Locker locker(stateMutex);
@@ -5190,7 +5190,7 @@ OSStatus ProxyAudioDevice::StopIO(AudioServerPlugInDriverRef inDriver,
     //    once all clients have stopped.
 
 #pragma unused(inClientID)
-    DebugMsg("ProxyAudio: StopIO %u", inDeviceObjectID);
+    DebugMsg("ProxyAudio: StopIO %d", inClientID);
     if (inDeviceObjectID == kObjectID_Device) {
         inputFinalFrameTime = lastInputFrameTime + lastInputBufferFrameSize;
     }
@@ -5405,6 +5405,7 @@ OSStatus ProxyAudioDevice::DoIOOperation(AudioServerPlugInDriverRef inDriver,
     //    clear the buffer for the ReadInput operation.
 
 #pragma unused(inClientID, ioSecondaryBuffer)
+    DebugMsg("ProxyAudio: DoIO %d", inClientID);
 
     //    declare the local variables
     OSStatus theAnswer = 0;
@@ -5425,7 +5426,7 @@ OSStatus ProxyAudioDevice::DoIOOperation(AudioServerPlugInDriverRef inDriver,
                    Done,
                    "DoIOOperation: bad stream ID");
     
-    
+
     //    clear the buffer if this iskAudioServerPlugInIOOperationReadInput
     if (inOperationID == kAudioServerPlugInIOOperationReadInput) {
         if (inputBuffer) {
@@ -5787,7 +5788,7 @@ CFStringRef ProxyAudioDevice::copyDefaultProxyOutputDeviceUID() {
     if (defaultDevice != kAudioObjectUnknown) {
         CFStringRef uid = AudioDevice::copyDeviceUID(defaultDevice);
         
-        if (uid && CFStringCompare(uid, CFSTR(kDevice_UID), 0) != kCFCompareEqualTo) {
+        if (uid && CFStringCompare(uid, CFSTR(kDevice_Output_UID), 0) != kCFCompareEqualTo) {
             DebugMsg("ProxyAudio: copyDefaultProxyOutputDeviceUID returning default output device");
             return uid;
         }
@@ -5821,7 +5822,7 @@ CFStringRef ProxyAudioDevice::copyOutputDeviceUIDFromStorage() {
     gPlugIn_Host->CopyFromStorage(gPlugIn_Host, CFSTR("outputDeviceUID"), &data);
 
     if (data != NULL && CFGetTypeID(data) == CFStringGetTypeID()
-        && CFStringCompare(CFStringRef(CFPropertyListRef(data)), CFSTR(kDevice_UID), 0) != kCFCompareEqualTo) {
+        && CFStringCompare(CFStringRef(CFPropertyListRef(data)), CFSTR(kDevice_Output_UID), 0) != kCFCompareEqualTo) {
         result = CFStringCreateCopy(NULL, CFStringRef(CFPropertyListRef(data)));
         DebugMsg("ProxyAudio: copyOutputDeviceUIDFromStorage finished with stored output device UID");
         return result;

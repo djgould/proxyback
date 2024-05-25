@@ -280,7 +280,7 @@ std::vector<AudioObjectID> AudioDevice::devicesWithOutputCapabilitiesThatAreNotP
 
         CFStringSmartRef uid = AudioDevice::copyDeviceUID(device);
 
-        if (!uid || CFStringCompare(uid, CFSTR(kDevice_UID), 0) == kCFCompareEqualTo) {
+        if (!uid || CFStringCompare(uid, CFSTR(kDevice_Output_UID), 0) == kCFCompareEqualTo) {
             continue;
         }
 

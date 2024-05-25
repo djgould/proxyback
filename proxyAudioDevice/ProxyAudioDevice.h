@@ -30,20 +30,35 @@ enum
 
 #define kPlugIn_BundleID "net.briankendall.ProxyAudioDevice"
 #define kBox_UID "ProxyAudioBox_UID"
-#define kDevice_UID "ProxyAudioDevice_UID"
-#define kDevice_ModelUID "ProxyAudioDevice_ModelUID"
-#define kDevice_Name "Platy"
+#define kDevice_Output_UID "ProxyAudioDevice_UID"
+#define kDevice_Output_ModelUID "ProxyAudioDevice_ModelUID"
+#define kDevice_Output_Name "Platy Speaker"
 #define kOutputDeviceDefaultBufferFrameSize 512
 #define kOutputDeviceMinBufferFrameSize 4
 #define kOutputDeviceDefaultActiveCondition ActiveCondition::userActive
-#define kDevice2_UID "Mirror_UID"
-#define kDevice2_Name "Mirror"
-#define kDevice_IsHidden false
-#define kDevice_HasInput false
-#define kDevice_HasOutput true
-#define kDevice2_IsHidden true
-#define kDevice2_HasInput true
-#define kDevice2_HasOutput false
+#define kDevice_Output2_UID "Mirror_UID"
+#define kDevice_Output2_Name "Mirror"
+#define kDevice_Output_IsHidden false
+#define kDevice_Output_HasInput false
+#define kDevice_Output_HasOutput true
+#define kDevice_Output2_IsHidden true
+#define kDevice_Output2_HasInput true
+#define kDevice_Output2_HasOutput false
+
+#define kDevice_Input_UID "ProxyAudioDevice_Input_UID"
+#define kDevice_Input_ModelUID "ProxyAudioDevice_Input_ModelUID"
+#define kDevice_Input_Name "Platy Microphone"
+#define kInputDeviceDefaultBufferFrameSize 512
+#define kInputDeviceMinBufferFrameSize 4
+#define kInputDeviceDefaultActiveCondition ActiveCondition::userActive
+#define kDevice_Input2_UID "Platy_Mic_Mirror_UID"
+#define kDevice_Input2_Name "Platy Mic Mirror"
+#define kDevice_Input_IsHidden false
+#define kDevice_Input_HasInput false
+#define kDevice_Input_HasOutput true
+#define kDevice_Input2_IsHidden true
+#define kDevice_Input2_HasInput true
+#define kDevice_Input2_HasOutput false
 
 class ProxyAudioDevice {
   public:
