@@ -102,7 +102,7 @@ static struct ObjectInfo            kDevice_Output_ObjectList[]                =
     { kObjectID_ClockSource,            kObjectType_Control,    kAudioObjectPropertyScopeGlobal }
 };
 
-static struct ObjectInfo            kDevice2_ObjectList[]                = {
+static struct ObjectInfo            kDevice_Output2_ObjectList[]                = {
 #if kDevice_Output2_HasInput
     { kObjectID_Stream_Input,           kObjectType_Stream,     kAudioObjectPropertyScopeInput  },
     { kObjectID_Volume_Input_Master,    kObjectType_Control,    kAudioObjectPropertyScopeInput  },
@@ -116,7 +116,7 @@ static struct ObjectInfo            kDevice2_ObjectList[]                = {
 };
 
 static const UInt32                 kDevice_Output_ObjectListSize              = sizeof(kDevice_Output_ObjectList) / sizeof(struct ObjectInfo);
-static const UInt32                 kDevice2_ObjectListSize              = sizeof(kDevice2_ObjectList) / sizeof(struct ObjectInfo);
+static const UInt32                 kDevice_Output2_ObjectListSize              = sizeof(kDevice_Output2_ObjectList) / sizeof(struct ObjectInfo);
 
 
 #pragma mark Factory
@@ -173,13 +173,13 @@ static UInt32 device_object_list_size(AudioObjectPropertyScope scope, AudioObjec
             {
                 if (scope == kAudioObjectPropertyScopeGlobal)
                 {
-                    return kDevice2_ObjectListSize;
+                    return kDevice_Output2_ObjectListSize;
                 }
 
                 UInt32 count = 0;
-                for (UInt32 i = 0; i < kDevice2_ObjectListSize; i++)
+                for (UInt32 i = 0; i < kDevice_Output2_ObjectListSize; i++)
                 {
-                    count += (kDevice2_ObjectList[i].scope == scope);
+                    count += (kDevice_Output2_ObjectList[i].scope == scope);
                 }
 
                 return count;
@@ -210,9 +210,9 @@ static UInt32 device_stream_list_size(AudioObjectPropertyScope scope, AudioObjec
         case kObjectID_Device2:
             {
                 UInt32 count = 0;
-                for (UInt32 i = 0; i < kDevice2_ObjectListSize; i++)
+                for (UInt32 i = 0; i < kDevice_Output2_ObjectListSize; i++)
                 {
-                    count += (kDevice2_ObjectList[i].type == kObjectType_Stream && (kDevice2_ObjectList[i].scope == scope || scope == kAudioObjectPropertyScopeGlobal));
+                    count += (kDevice_Output2_ObjectList[i].type == kObjectType_Stream && (kDevice_Output2_ObjectList[i].scope == scope || scope == kAudioObjectPropertyScopeGlobal));
                 }
 
                 return count;
@@ -246,9 +246,9 @@ static UInt32 device_control_list_size(AudioObjectPropertyScope scope, AudioObje
         {
             
             UInt32 count = 0;
-            for (UInt32 i = 0; i < kDevice2_ObjectListSize; i++)
+            for (UInt32 i = 0; i < kDevice_Output2_ObjectListSize; i++)
             {
-                count += (kDevice2_ObjectList[i].type == kObjectType_Control && (kDevice2_ObjectList[i].scope == scope || scope == kAudioObjectPropertyScopeGlobal));
+                count += (kDevice_Output2_ObjectList[i].type == kObjectType_Control && (kDevice_Output2_ObjectList[i].scope == scope || scope == kAudioObjectPropertyScopeGlobal));
             }
 
             return count;
@@ -3002,9 +3002,9 @@ OSStatus ProxyAudioDevice::GetDevicePropertyData(AudioServerPlugInDriverRef inDr
                 case kObjectID_Device2:
                     for (UInt32 i = 0, k = 0; k < theNumberItemsToFetch; i++)
                     {
-                        if (kDevice2_ObjectList[i].scope == inAddress->mScope || inAddress->mScope == kAudioObjectPropertyScopeGlobal)
+                        if (kDevice_Output2_ObjectList[i].scope == inAddress->mScope || inAddress->mScope == kAudioObjectPropertyScopeGlobal)
                         {
-                            ((AudioObjectID*)outData)[k++] = kDevice2_ObjectList[i].id;
+                            ((AudioObjectID*)outData)[k++] = kDevice_Output2_ObjectList[i].id;
                         }
                     }
                     break;
@@ -3220,10 +3220,10 @@ OSStatus ProxyAudioDevice::GetDevicePropertyData(AudioServerPlugInDriverRef inDr
                 case kObjectID_Device2:
                     for (UInt32 i = 0, k = 0; k < theNumberItemsToFetch; i++)
                     {
-                        if ((kDevice2_ObjectList[i].type == kObjectType_Stream) &&
-                            (kDevice2_ObjectList[i].scope == inAddress->mScope || inAddress->mScope == kAudioObjectPropertyScopeGlobal))
+                        if ((kDevice_Output2_ObjectList[i].type == kObjectType_Stream) &&
+                            (kDevice_Output2_ObjectList[i].scope == inAddress->mScope || inAddress->mScope == kAudioObjectPropertyScopeGlobal))
                         {
-                            ((AudioObjectID*)outData)[k++] = kDevice2_ObjectList[i].id;
+                            ((AudioObjectID*)outData)[k++] = kDevice_Output2_ObjectList[i].id;
                         }
                     }
                     break;
@@ -3262,7 +3262,7 @@ OSStatus ProxyAudioDevice::GetDevicePropertyData(AudioServerPlugInDriverRef inDr
                     {
                         if ((kDevice_Output_ObjectList[i].type == kObjectType_Control) && !(!gPitch_Adjust_Enabled && kDevice_Output_ObjectList[i].id==kObjectID_Pitch_Adjust))
                         {
-                            ((AudioObjectID*)outData)[k++] = kDevice2_ObjectList[i].id;
+                            ((AudioObjectID*)outData)[k++] = kDevice_Output2_ObjectList[i].id;
                         }
                     }
                     break;
